@@ -137,7 +137,7 @@ def train_perceptron(train_exs: List[SentimentExample], feat_extractor: FeatureE
     # set up starting vals/objects
     # best ones: alpha = .03, epochs = 500 (74.43%)
     weights = [0]*20001
-    alpha = .035
+    alpha = .03
     alphaorig = alpha
     epochs = 500
     model = PerceptronClassifier(weights, feat_extractor)
