@@ -5,6 +5,7 @@ from utils import *
 
 from collections import Counter
 from numpy import exp
+from random import shuffle
 
 class FeatureExtractor(object):
     """
@@ -216,17 +217,18 @@ def train_logistic_regression(train_exs: List[SentimentExample], feat_extractor:
     :return: trained LogisticRegressionClassifier model
     """
     # set up starting vals/objects
-    # best ones: alpha = .03, epochs = 300 (73.39%)
+    # best ones: alpha = .6, epochs = 300 (75.91%)
     weights = [0]*20001
-    alpha = .03
+    alpha = .6
     alphaorig = alpha
     epochs = 300
     model = LogisticRegressionClassifier(weights, feat_extractor)
 
     # perceptron training algorithm
     for t in range(epochs):
-        if t != 0:
-            alpha -= alphaorig / epochs
+        alpha -= alphaorig / epochs
+        # shuffle the data once per epoch
+        shuffle(train_exs)
         for d in train_exs:
             # indexer is being updated with every call
             ypred = model.predict(d.words)
@@ -244,7 +246,7 @@ def train_logistic_regression(train_exs: List[SentimentExample], feat_extractor:
                     # find index val associated with that specific word
                     index = indexer.index_of(feature)
                     # update weight based on perceptron algorithm
-                    model.weights[index] += alpha * model.Pofygivenx
+                    model.weights[index] += alpha * (1-model.Pofygivenx)
             else:
                 # same as prev branch, but weight is updated differently
                 indexer = model.featurizer.get_indexer()
