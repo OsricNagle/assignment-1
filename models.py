@@ -4,6 +4,7 @@ from sentiment_data import *
 from utils import *
 
 from collections import Counter
+from numpy import exp
 
 class FeatureExtractor(object):
     """
@@ -115,7 +116,7 @@ class PerceptronClassifier(SentimentClassifier):
         else:
             self.ypred = 0
             return 0
-
+        
 
 class LogisticRegressionClassifier(SentimentClassifier):
     """
@@ -123,9 +124,40 @@ class LogisticRegressionClassifier(SentimentClassifier):
     superclass. Hint: you'll probably need this class to wrap both the weight vector and featurizer -- feel free to
     modify the constructor to pass these in.
     """
-    def __init__(self):
-        raise Exception("Must be implemented")
+    def __init__(self, weights: List[int], featurizer: FeatureExtractor):
+        self.weights = weights
+        self.featurizer = featurizer
+        # variable to hold probability, so it can be referenced during training
+        self.Pofygivenx = 0
 
+    def predict(self, sentence: List[str]):
+        # zero out Pofygivenx for new prediction
+        self.Pofygivenx = 0
+
+        # get feature, which is the vector of word quantities, from the featurizer
+        # features = Counter() object
+        features = self.featurizer.extract_features(sentence, True)
+
+        indexer = self.featurizer.get_indexer()
+        wfx = 0
+        # for each feature, calculate sentiment val and add to ypred
+        for feature, frequency in features.items():
+            # get index value of weight associated with each feature
+            # (for this assignment, don't have to worry about unknown words)
+            index = indexer.index_of(feature)
+            # multiply feature with correct weight
+            #  print(index)
+            wfx += self.weights[index] 
+
+        # logistic regression: calculate P(y=+1|x) = e^(wfx)/(1 + e^(wfx)
+        # make sure to reset self.ypred for the next
+        self.Pofygivenx = exp(wfx) / (1 + exp(wfx))
+        if wfx > 0.5:
+            # positive sentiment
+            return 1
+        else:
+            return 0
+        
 
 def train_perceptron(train_exs: List[SentimentExample], feat_extractor: FeatureExtractor) -> PerceptronClassifier:
     """
@@ -144,7 +176,7 @@ def train_perceptron(train_exs: List[SentimentExample], feat_extractor: FeatureE
 
     # perceptron training algorithm
     for t in range(epochs):
-        if t is not 0:
+        if t != 0:
             alpha -= alphaorig / epochs
         for d in train_exs:
             # indexer is being updated with every call
@@ -175,6 +207,7 @@ def train_perceptron(train_exs: List[SentimentExample], feat_extractor: FeatureE
                     model.weights[index] -= alpha
     return model
 
+
 def train_logistic_regression(train_exs: List[SentimentExample], feat_extractor: FeatureExtractor) -> LogisticRegressionClassifier:
     """
     Train a logistic regression model.
@@ -182,7 +215,46 @@ def train_logistic_regression(train_exs: List[SentimentExample], feat_extractor:
     :param feat_extractor: feature extractor to use
     :return: trained LogisticRegressionClassifier model
     """
-    raise Exception("Must be implemented")
+    # set up starting vals/objects
+    # best ones: alpha = .03, epochs = 300 (73.39%)
+    weights = [0]*20001
+    alpha = .03
+    alphaorig = alpha
+    epochs = 300
+    model = LogisticRegressionClassifier(weights, feat_extractor)
+
+    # perceptron training algorithm
+    for t in range(epochs):
+        if t != 0:
+            alpha -= alphaorig / epochs
+        for d in train_exs:
+            # indexer is being updated with every call
+            ypred = model.predict(d.words)
+            yactual = d.label
+            # update weights based on ypred
+            if ypred == yactual:
+                # no updates to weights
+                pass
+            elif yactual > 0:
+                # increase weight vec by small amount
+                # only change weights in correct indices
+                indexer = model.featurizer.get_indexer()
+                features = model.featurizer.extract_features(d.words, False)
+                for feature, frequency in features.items():
+                    # find index val associated with that specific word
+                    index = indexer.index_of(feature)
+                    # update weight based on perceptron algorithm
+                    model.weights[index] += alpha * model.Pofygivenx
+            else:
+                # same as prev branch, but weight is updated differently
+                indexer = model.featurizer.get_indexer()
+                features = model.featurizer.extract_features(d.words, False)
+                for feature, frequency in features.items():
+                    # find index val associated with that specific word
+                    index = indexer.index_of(feature)
+                    # update weight based on perceptron algorithm
+                    model.weights[index] -= alpha * model.Pofygivenx
+    return model
 
 
 def train_model(args, train_exs: List[SentimentExample], dev_exs: List[SentimentExample]) -> SentimentClassifier:
