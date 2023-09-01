@@ -73,9 +73,44 @@ class BigramFeatureExtractor(FeatureExtractor):
 class BetterFeatureExtractor(FeatureExtractor):
     """
     Better feature extractor...try whatever you can think of!
+    Tried using a trigram extractor, but it had significantly lower accuracy than 
+    when using bigrams
+
+    trigram predict function:
+    def extract_features(self, sentence: List[str], add_to_indexer: bool=False):
+        # sliding window to generate bigrams
+        sentenceLength = len(sentence)-2
+        listOfTrigrams = []
+        for i in range(sentenceLength):
+            # print(sentence[i] + ", " + sentence[i+1])
+            trigram = sentence[i] + " " + sentence[i+1] + " " + sentence[i+2]
+            #print(bigram)
+            listOfTrigrams.append(trigram)
+            if add_to_indexer:
+                self.BetterIndexer.add_and_get_index(trigram)
+        features = Counter(listOfTrigrams)
+        return features
     """
+    
     def __init__(self, indexer: Indexer):
-        raise Exception("Must be implemented")
+        self.BigramIndexer = indexer
+
+    def get_indexer(self):
+        return self.BigramIndexer
+
+    def extract_features(self, sentence: List[str], add_to_indexer: bool=False):
+        # sliding window to generate bigrams
+        sentenceLength = len(sentence)-1
+        listOfBygrams = []
+        for i in range(sentenceLength):
+            # print(sentence[i] + ", " + sentence[i+1])
+            bigram = sentence[i] + " " + sentence[i+1]
+            #print(bigram)
+            listOfBygrams.append(bigram)
+            if add_to_indexer:
+                self.BigramIndexer.add_and_get_index(bigram)
+        features = Counter(listOfBygrams)
+        return features
 
 
 class SentimentClassifier(object):
@@ -243,7 +278,7 @@ def train_logistic_regression(train_exs: List[SentimentExample], feat_extractor:
     # set up starting vals/objects
     # best ones: alpha = .6, epochs = 200 (77.29%)
     weights = [0]*200001
-    alpha = .53
+    alpha = .6
     alphaorig = alpha
     epochs = 200
     model = LogisticRegressionClassifier(weights, feat_extractor)
