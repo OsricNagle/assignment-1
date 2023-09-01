@@ -51,8 +51,24 @@ class BigramFeatureExtractor(FeatureExtractor):
     Bigram feature extractor analogous to the unigram one.
     """
     def __init__(self, indexer: Indexer):
-        raise Exception("Must be implemented")
+        self.BigramIndexer = indexer
 
+    def get_indexer(self):
+        return self.BigramIndexer
+
+    def extract_features(self, sentence: List[str], add_to_indexer: bool=False):
+        # sliding window to generate bigrams
+        sentenceLength = len(sentence)-1
+        listOfBygrams = []
+        for i in range(sentenceLength):
+            # print(sentence[i] + ", " + sentence[i+1])
+            bigram = sentence[i] + " " + sentence[i+1]
+            #print(bigram)
+            listOfBygrams.append(bigram)
+            if add_to_indexer:
+                self.BigramIndexer.add_and_get_index(bigram)
+        features = Counter(listOfBygrams)
+        return features
 
 class BetterFeatureExtractor(FeatureExtractor):
     """
@@ -148,10 +164,14 @@ class LogisticRegressionClassifier(SentimentClassifier):
             index = indexer.index_of(feature)
             # multiply feature with correct weight
             #  print(index)
+            if index < 0 or index > len(self.weights)-1:
+                print(index)
             wfx += self.weights[index] 
 
         # logistic regression: calculate P(y=+1|x) = e^(wfx)/(1 + e^(wfx)
         # make sure to reset self.ypred for the next
+        if wfx > 709:
+            print(wfx)
         self.Pofygivenx = exp(wfx) / (1 + exp(wfx))
         if wfx > 0.5:
             # positive sentiment
@@ -196,6 +216,8 @@ def train_perceptron(train_exs: List[SentimentExample], feat_extractor: FeatureE
                     # find index val associated with that specific word
                     index = indexer.index_of(feature)
                     # update weight based on perceptron algorithm
+                    if index < 0:
+                        print(index)
                     model.weights[index] += alpha
             else:
                 # same as prev branch, but weight is updated differently
@@ -204,6 +226,8 @@ def train_perceptron(train_exs: List[SentimentExample], feat_extractor: FeatureE
                 for feature, frequency in features.items():
                     # find index val associated with that specific word
                     index = indexer.index_of(feature)
+                    if index < 0:
+                        print(index)
                     # update weight based on perceptron algorithm
                     model.weights[index] -= alpha
     return model
@@ -217,11 +241,11 @@ def train_logistic_regression(train_exs: List[SentimentExample], feat_extractor:
     :return: trained LogisticRegressionClassifier model
     """
     # set up starting vals/objects
-    # best ones: alpha = .6, epochs = 300 (75.91%)
-    weights = [0]*20001
+    # best ones: alpha = .6, epochs = 200 (77.29%)
+    weights = [0]*80001
     alpha = .6
     alphaorig = alpha
-    epochs = 300
+    epochs = 200
     model = LogisticRegressionClassifier(weights, feat_extractor)
 
     # perceptron training algorithm
