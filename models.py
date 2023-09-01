@@ -242,8 +242,8 @@ def train_logistic_regression(train_exs: List[SentimentExample], feat_extractor:
     """
     # set up starting vals/objects
     # best ones: alpha = .6, epochs = 200 (77.29%)
-    weights = [0]*80001
-    alpha = .6
+    weights = [0]*200001
+    alpha = .53
     alphaorig = alpha
     epochs = 200
     model = LogisticRegressionClassifier(weights, feat_extractor)
